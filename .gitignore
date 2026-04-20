@@ -208,3 +208,6 @@ __marimo__/
 
 #Folder with models
 models/
+
+#Local Chroma Database
+chroma_db/

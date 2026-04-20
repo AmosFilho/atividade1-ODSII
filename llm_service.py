@@ -2,34 +2,30 @@
 from huggingface_hub import hf_hub_download
 from pathlib import Path
 from llama_cpp import Llama
+from langchain_huggingface.embeddings import HuggingFaceEmbeddings
+
 
 PERSIST_DIR = "./chroma_db"
 COLLECTION_NAME = "oberon"
-EMBEDDING_MODEL_NAME = "nomic-embed-text-v1.5.Q2_K.gguf"
-EMBEDDING_MODEL_REPO = "nomic-ai/nomic-embed-text-v1.5-GGUF"
+
+EMBEDDING_MODEL_NAME = "sentence-transformers/all-mpnet-base-v2"
+
 CHAT_MODEL_NAME = "gemma-4-E2B-it-Q4_K_M.gguf"
 CHAT_MODEL_REPO = "unsloth/gemma-4-E2B-it-GGUF"
 
-class LLMSService:
+class LLMService:
     def __init__(self):
         self.chat_model = Llama.from_pretrained(
             repo_id=CHAT_MODEL_REPO,
             filename=CHAT_MODEL_NAME,
-            n_ctx=4096,
+            n_ctx=2028,
             verbose=False
         )
-        self.embed_model = Llama.from_pretrained(
-            repo_id=EMBEDDING_MODEL_REPO,
-            filename=EMBEDDING_MODEL_NAME,
-            n_ctx=4096,
-            embedding = True,
-            verbose=False
-        )
-
+        self.embedding = HuggingFaceEmbeddings(model_name = EMBEDDING_MODEL_NAME)
     def create_embedding(self, text):
-        embedding = self.embed_model.embed(text)
-        print(f"Embedding created for text: '{text}' with length {len(embedding)}")
-        return embedding
+        embedded_text = self.embedding.embed_query(text)
+        print(f"Embedding created for text: '{text}' with length {len(embedded_text)}")
+        return embedded_text
 
     def generate_response(self, prompt):
         # Here you would implement the logic to interact with the LLM model
@@ -42,7 +38,7 @@ class LLMSService:
                     
                 }
             ],
-            max_tokens=200
+            max_tokens=2000
         )
 
         print(response["choices"][0]["message"]["content"])
