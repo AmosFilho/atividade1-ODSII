@@ -3,12 +3,15 @@ from langchain_core.documents import Document
 from llama_cpp import Llama
 from langchain_community.embeddings import LlamaCppEmbeddings
 import os
-from extract_documents import load_pdf, split_documents
+from extract_documents import load_pdf, split_documents, load_and_split_folder
 
 from llm_service import LLMService
 
 PERSIST_DIR = "./chroma_db"
-COLLECTION_NAME = "oberon"
+COLLECTION_NAME = "juridico"
+DOCUMENTS_PATH = "documents"
+
+filter_by_name = {"document_name":"ECA2021_Digital"}
 
 def load_or_create_index_chroma(llm_service: LLMService):
     docs = load_pdf("documents/ECA2021_Digital.pdf")
@@ -49,11 +52,10 @@ class IndexService:
         )
     
     def _load_documents(self) -> list[Document]:
-        docs = load_pdf("documents/ECA2021_Digital.pdf")
-        chunks = split_documents(docs)
+        #docs = load_pdf("documents/ECA2021_Digital.pdf")
+        chunks = load_and_split_folder("documents/")
 
-        print(f"Total de chunks: {len(chunks)}")
-        print(f"Primeiro chunk: {chunks[0].page_content[:200]}")
+        print(f"Primeiro chunk: {chunks[0].page_content}")
 
         return chunks
 
@@ -85,5 +87,5 @@ class IndexService:
     def get_retriever(self, k: int):
         return self.vector_store.as_retriever(search_kwargs={"k": k})
 
-    def similarity_search(self, query: str, k: int):
-        return self.vector_store.similarity_search(query, k=k)
+    def similarity_search(self, query: str, k: int, filters_metadata):
+        return self.vector_store.similarity_search(query, k=k, filter=filters_metadata)

@@ -2,7 +2,6 @@
 from llama_cpp import Llama
 from langchain_community.chat_models import ChatLlamaCpp
 from langchain_core.messages import SystemMessage, HumanMessage
-from index_service import load_or_create_index_chroma
 from llm_service import LLMService
 from index_service import IndexService
 
@@ -10,6 +9,8 @@ import os
 import warnings
 import sys
 from chat_service import ChatService
+from evaluation_results import RAGEvaluator
+
 '''
 os.environ["LLAMA_LOG_LEVEL"] = "ERROR"
 warnings.filterwarnings("ignore")
@@ -36,6 +37,7 @@ def main():
     storage_service.initialize()
 
     chat = ChatService(llm, storage_service)
+    chat.add_metadata_filter("document_name", "ECA2021_Digital")
     chat.generate_response("No que consiste a prestação de serviços comunitários?")
 
     '''
@@ -44,6 +46,9 @@ def main():
         k=10
     )
     '''
+
+    #test = RAGEvaluator(llm, storage_service)
+    #test.evaluate_rag(5)
     return 
 
 if __name__ == "__main__":
