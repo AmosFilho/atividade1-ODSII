@@ -37,6 +37,7 @@ class ChatService:
 
         print("--- Resposta Final ---")
         print(answer)
+        return answer
 
     def add_metadata_filter(
         self,

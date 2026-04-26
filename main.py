@@ -10,43 +10,64 @@ import warnings
 import sys
 from chat_service import ChatService
 from evaluation_results import RAGEvaluator
+import streamlit as st
 
-'''
-os.environ["LLAMA_LOG_LEVEL"] = "ERROR"
-warnings.filterwarnings("ignore")
-sys.stderr = open(os.devnull, 'w')
-'''
 MODEL_ID = "gemma-4-E2B-it-BF16.gguf"
 REPO_ID = "unsloth/gemma-4-E2B-it-GGUF"
 MODEL_PATH = "models/gemma-4-E2B-it-Q4_K_M.gguf"
 PERSIST_DIR = "./chroma_db"
 COLLECTION_NAME = "oberon"
 
+@st.cache_resource
+def load_llm():
+    with st.spinner("Carregando modelo..."):
+        return LLMService()
+    
+
+@st.cache_resource
+def load_index(_llm):
+    with st.spinner("Indexando documentos..."):
+        storage = IndexService(
+            llm_service=_llm,
+            persist_dir=PERSIST_DIR,
+            collection_name=COLLECTION_NAME
+        )
+        storage.initialize()
+        return storage
+
+@st.cache_resource
+def load_chat(_llm, _index):
+    chat = ChatService(_llm, _index)
+    chat.add_metadata_filter(
+        "document_name",
+        "ECA2021_Digital"
+    )
+
+    return chat
+
 def main():
     
-    llm = LLMService()
+    st.title("RAG System - Assitente dos Direitos do Cidadão")
+    status = st.empty()
+    
+    llm = load_llm()
 
     #llm.generate_response("Olá, qual é a capital da França?")
     #llm.create_embedding("Olá, tudo bem?")
-
-    storage_service = IndexService(
-        llm_service=llm,
-        persist_dir=PERSIST_DIR,
-        collection_name=COLLECTION_NAME
-    )
-    storage_service.initialize()
-
-    chat = ChatService(llm, storage_service)
-    chat.add_metadata_filter("document_name", "ECA2021_Digital")
-    chat.generate_response("No que consiste a prestação de serviços comunitários?")
-
-    '''
-    docs = storage_service.similarity_search(
-        "Qual o artigo 19 do Esatuto da Criança e do Adolescente?",
-        k=10
-    )
-    '''
-
+    storage_service = load_index(llm)
+    #storage_service.initialize()
+    chat = load_chat(llm, storage_service)
+    #chat.add_metadata_filter("document_name", "ECA2021_Digital")
+    status.toast("Sistema pronto.")
+    user_query = st.chat_input("Digite sua pergunta aqui...")
+    if user_query:
+        with st.chat_message("user"):
+            st.write(user_query)
+        with st.spinner("Gerando resposta..."):
+            response = chat.generate_response(user_query)
+            #st.write("Resposta : ",response)
+        with st.chat_message("assistant"):
+            st.write(response)
     #test = RAGEvaluator(llm, storage_service)
     #test.evaluate_rag(5)
     return 
