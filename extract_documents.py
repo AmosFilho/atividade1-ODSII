@@ -2,8 +2,8 @@ from langchain_community.document_loaders import PyPDFLoader
 from langchain_text_splitters import RecursiveCharacterTextSplitter
 from pathlib import Path
 from langchain_core.documents import Document
-import json
 import os
+import re
 
 chunk_size = 1000
 chunk_overlap = 200
@@ -38,7 +38,13 @@ def split_documents(docs):
     for chunk in chunks:
         page = chunk.metadata.get("page_label", "N/A")
 
-        chunk.page_content = f"[Página {page}]\n{chunk.page_content}"
+        clean_chunk = clean_text(
+            chunk.page_content
+        )
+
+        chunk.page_content = (
+            f"[Página {page}]\n{clean_chunk}"
+        )
 
     return chunks
 
@@ -109,3 +115,23 @@ def load_and_split_folder(
     )
 
     return all_chunks
+
+def clean_text(text):
+    replacements = {
+        "": "t",
+        "": "t",
+    }
+
+    for bad, good in replacements.items():
+        text = text.replace(bad, good)
+
+    # remove caracteres privados unicode (muito comuns em PDFs quebrados)
+    text = "".join(
+        c for c in text
+        if not ("\uE000" <= c <= "\uF8FF")
+    )
+
+    # normaliza espaços
+    text = re.sub(r"\s+", " ", text)
+
+    return text.strip()

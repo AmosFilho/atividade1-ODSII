@@ -1,11 +1,7 @@
-
-from huggingface_hub import hf_hub_download
-from pathlib import Path
 from llama_cpp import Llama
 from langchain_huggingface.embeddings import HuggingFaceEmbeddings
 import logging
-import torch
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer
 from sentence_transformers import CrossEncoder
 
 # Configurações de Log
@@ -77,11 +73,12 @@ class LLMService:
 
 
         # 🔹 LOG ANTES DO RERANK
-        logger.info("\n========== 🔎 BEFORE RERANK ==========")
+        logger.info("\n========== BEFORE RERANK ==========")
         for i, (doc, text) in enumerate(zip(documents, doc_texts)):
             preview = text.replace("\n", " ")
-            logger.info(f"#{i+1} | {preview}")
-            print(doc.metadata.get("document_name"))
+            doc_index = doc.metadata.get("chunk_index", "N/A")
+            logger.info(f"#{i+1} | document_index={doc_index} | {preview}")
+            #print(doc.metadata.get("document_name"))
 
         # 2. Criar pares (query, passagem)
         pairs = [[query, text] for text in doc_texts]
@@ -97,11 +94,11 @@ class LLMService:
             reverse=True
         )
 
-        logger.info("\n========== 🚀 AFTER RERANK ==========")
+        logger.info("\n========== AFTER RERANK ==========")
         for i, (doc, score, text) in enumerate(ranked_results[:top_n]):
             preview = text[:200].replace("\n", " ")
-            logger.info(f"#{i+1} | Score: {score:.4f} | {preview}")
-
+            doc_index = doc.metadata.get("chunk_index", "N/A")
+            logger.info(f"#{i+1} | Score: {score:.4f} | doc_index={doc_index} | {preview}")
             # opcional: metadata (muito útil)
             #if hasattr(doc, "metadata"):
                 #logger.info(f"    metadata: {doc.metadata}")
