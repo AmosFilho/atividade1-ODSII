@@ -1,0 +1,86 @@
+services:
+  ollama:
+    image: ollama/ollama:latest
+    gpus: all
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama_data:/root/.ollama
+    environment:
+      OLLAMA_KEEP_ALIVE: ${OLLAMA_KEEP_ALIVE:-10m}
+    healthcheck:
+      test: ["CMD", "ollama", "list"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+      start_period: 10s
+
+  ollama-pull:
+    image: ollama/ollama:latest
+    environment:
+      OLLAMA_HOST: http://ollama:11434
+    command: ["pull", "${OLLAMA_MODEL:-llama3.1:8b}"]
+    depends_on:
+      ollama:
+        condition: service_healthy
+
+  api:
+    build: .
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    ports:
+      - "8000:8000"
+    environment:
+      OLLAMA_MODEL: ${OLLAMA_MODEL:-llama3.1:8b}
+      OLLAMA_BASE_URL: http://ollama:11434
+      VECTOR_STORE_DIR: /app/data/vector_store
+      RAW_DATA_DIR: /app/data/raw
+      SAMPLE_DATA_DIR: /app/data/samples
+      CHROMA_COLLECTION: ${CHROMA_COLLECTION:-clinic_procedure_docs}
+      EMBEDDING_MODEL_NAME: ${EMBEDDING_MODEL_NAME:-sentence-transformers/paraphrase-multilingual-MiniLM-L12-v2}
+      CHUNK_SIZE: ${CHUNK_SIZE:-900}
+      CHUNK_OVERLAP: ${CHUNK_OVERLAP:-150}
+      TOP_K: ${TOP_K:-4}
+      LLM_TEMPERATURE: ${LLM_TEMPERATURE:-0.1}
+      LLM_TIMEOUT_SECONDS: ${LLM_TIMEOUT_SECONDS:-120}
+      LLM_NUM_CTX: ${LLM_NUM_CTX:-2048}
+      LLM_NUM_PREDICT: ${LLM_NUM_PREDICT:-350}
+      LLM_NUM_GPU: ${LLM_NUM_GPU:-}
+      WHATSAPP_PROVIDER: ${WHATSAPP_PROVIDER:-chatpro}
+      CHATPRO_BASE_URL: ${CHATPRO_BASE_URL:-https://v5.chatpro.com.br}
+      CHATPRO_INSTANCE_ID: ${CHATPRO_INSTANCE_ID:-}
+      CHATPRO_TOKEN: ${CHATPRO_TOKEN:-}
+      CHATPRO_RESPOND_FROM_ME: ${CHATPRO_RESPOND_FROM_ME:-false}
+      CHATPRO_BOT_PREFIX: ${CHATPRO_BOT_PREFIX:-Assistente:}
+      CHATPRO_FROM_ME_TRIGGER: ${CHATPRO_FROM_ME_TRIGGER:-!bot}
+    volumes:
+      - .:/app
+      - ./data:/app/data
+    depends_on:
+      ollama-pull:
+        condition: service_completed_successfully
+
+  frontend:
+    build: .
+    command: streamlit run frontend/streamlit_app.py --server.address 0.0.0.0 --server.port 8501
+    ports:
+      - "8501:8501"
+    environment:
+      API_URL: http://api:8000
+    depends_on:
+      - api
+    volumes:
+      - .:/app
+      - ./data:/app/data
+
+  ngrok:
+    image: ngrok/ngrok:latest
+    command: ["http", "http://api:8000"]
+    environment:
+      NGROK_AUTHTOKEN: ${NGROK_AUTHTOKEN:-}
+    ports:
+      - "4040:4040"
+    depends_on:
+      - api
+
+volumes:
+  ollama_data:
