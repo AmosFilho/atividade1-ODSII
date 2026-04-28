@@ -1,134 +1,231 @@
 from __future__ import annotations
 
-import re
-from dataclasses import dataclass
-
 from app.schemas.chat import TriageDecision
 
 
-@dataclass(frozen=True)
-class TriageRule:
-    action: str
-    reason: str
-    patterns: tuple[str, ...]
-    requires_human: bool = False
-    is_emergency: bool = False
+SAFETY_TERMS = (
+    "bateria estufada",
+    "bateria inchada",
+    "bateria inflada",
+    "cheiro de queimado",
+    "fumaca",
+    "faisca",
+    "pegou fogo",
+    "choque",
+    "curto",
+    "superaqueceu",
+    "superaquecendo",
+    "superaquecimento",
+)
 
+HUMAN_TERMS = (
+    "quanto custa",
+    "preco",
+    "valor",
+    "orcamento",
+    "desconto",
+    "reembolso",
+    "aprovar",
+    "cancelar servico",
+    "status",
+    "ordem de servico",
+    "numero da os",
+    "senha",
+    "desbloqueio",
+    "desbloquear",
+    "icloud",
+    "conta google",
+    "frp",
+    "recuperar dados",
+    "recuperar fotos",
+)
 
-TRIAGE_RULES = (
-    TriageRule(
-        action="urgencia_emergencia",
-        reason="A pergunta relata sinal de alerta ou possivel urgencia.",
-        patterns=(
-            r"\bfalta de ar\b",
-            r"\bdor no peito\b",
-            r"\bdesma(i|iei|ou|ando)\b",
-            r"\bconfus[aã]o mental\b",
-            r"\bl[aá]bios? (arroxeados?|roxos?)\b",
-            r"\bsangramento (intenso|muito|forte|persistente)\b",
-            r"\bvomit(o|ei|ou|ando).{0,30}sangue\b",
-            r"\bfezes pretas\b",
-            r"\bfebre (persistente|alta)\b",
-            r"\bdor abdominal (forte|intensa|progressiva)\b",
-            r"\bincha[cç]o (no rosto|na face|na garganta|de garganta|nos l[aá]bios)\b",
-            r"\burtic[aá]ria extensa\b",
-            r"\bpiora (importante|r[aá]pida)\b",
-        ),
-        requires_human=True,
-        is_emergency=True,
-    ),
-    TriageRule(
-        action="encaminhar_humano",
-        reason="A pergunta envolve medicamento ou alteracao de tratamento.",
-        patterns=(
-            r"\bposso (parar|suspender|tomar|dobrar|trocar|ajustar|manter)\b.{0,40}\b(rem[eé]dio|medicamento|medica[cç][aã]o)\b",
-            r"\b(suspender|parar|ajustar|trocar|dobrar) (o|a|meu|minha)?\s*(rem[eé]dio|medicamento|dose)\b",
-            r"\banticoagulante\b",
-            r"\bantiagregante\b",
-            r"\bclopidogrel\b",
-            r"\bvarfarina\b",
-            r"\brivaroxabana\b",
-            r"\bapixabana\b",
-            r"\bdabigatrana\b",
-            r"\binsulina\b",
-            r"\bmetformina\b",
-        ),
-        requires_human=True,
-    ),
-    TriageRule(
-        action="encaminhar_humano",
-        reason="A pergunta envolve condicao clinica que exige confirmacao individual.",
-        patterns=(
-            r"\bgr[aá]vid[ao]\b",
-            r"\bgestante\b",
-            r"\bamamentando\b",
-            r"\bal[eé]rgic[ao]\b",
-            r"\balergia\b",
-            r"\bdiabetes\b",
-            r"\bmarcapasso\b",
-            r"\bdesfibrilador\b",
-            r"\bdoen[cç]a renal\b",
-            r"\bdial[ií]se\b",
-            r"\bapneia do sono\b",
-            r"\bdoen[cç]a card[ií]aca\b",
-        ),
-        requires_human=True,
-    ),
-    TriageRule(
-        action="operacional_com_confirmacao",
-        reason="A pergunta envolve preparo incompleto, divergente ou situacao operacional que a clinica deve confirmar.",
-        patterns=(
-            r"\bquebrei o jejum\b",
-            r"\bcomi\b.{0,40}\b(hoje|agora|sem querer|antes do exame)\b",
-            r"\bbebi\b.{0,40}\b(hoje|agora|sem querer|antes do exame)\b",
-            r"\besqueci\b.{0,40}\b(preparo|laxante|dose|tomar)\b",
-            r"\bvomitei\b.{0,40}\b(preparo|laxante)\b",
-            r"\bn[aã]o consegui\b.{0,40}\b(evacuar|tomar|fazer o preparo)\b",
-            r"\batrasad[ao]\b",
-            r"\bsem acompanhante\b",
-        ),
-        requires_human=True,
-    ),
+SPECIFIC_WARRANTY_TERMS = (
+    "minha garantia",
+    "meu aparelho",
+    "meu equipamento",
+    "cobre",
+    "acionar garantia",
+    "garantia cobre",
+    "garantia vale",
+    "garantia venceu",
+    "garantia acabou",
+)
+
+IN_SCOPE_TERMS = (
+    "assistencia",
+    "tecnico",
+    "conserto",
+    "reparo",
+    "servico",
+    "celular",
+    "telefone",
+    "smartphone",
+    "iphone",
+    "samsung",
+    "motorola",
+    "xiaomi",
+    "tablet",
+    "notebook",
+    "computador",
+    "pc",
+    "monitor",
+    "carregador",
+    "cabo",
+    "fonte",
+    "bateria",
+    "tela",
+    "teclado",
+    "placa",
+    "conector",
+    "liga",
+    "carrega",
+    "molhou",
+    "caiu",
+    "travando",
+    "lento",
+    "formatar",
+    "backup",
+    "garantia",
+    "orcamento",
+    "os",
+    "ordem de servico",
+    "prazo",
+    "coleta",
+    "entrega",
+    "retirada",
+    "nota fiscal",
+    "documento",
+    "loja",
+    "endereco",
+)
+
+CAPABILITY_TERMS = (
+    "o que voce faz",
+    "o que vc faz",
+    "como voce pode ajudar",
+    "como vc pode ajudar",
+    "com o que voce ajuda",
+    "com o que vc ajuda",
+    "quais perguntas",
+    "qual seu escopo",
+)
+
+OUT_OF_SCOPE_TERMS = (
+    "previsao do tempo",
+    "clima",
+    "futebol",
+    "jogo de hoje",
+    "noticia",
+    "politica",
+    "receita",
+    "restaurante",
+    "hotel",
+    "passagem",
+    "viagem",
+    "filme",
+    "musica",
+    "remedio",
+    "medicamento",
+    "consulta medica",
+    "dor de cabeca",
 )
 
 
 def triage_question(question: str) -> TriageDecision:
     normalized = normalize(question)
-    for rule in TRIAGE_RULES:
-        if any(re.search(pattern, normalized) for pattern in rule.patterns):
-            return TriageDecision(
-                action=rule.action,
-                reason=rule.reason,
-                requires_human=rule.requires_human,
-                is_emergency=rule.is_emergency,
-            )
+
+    if has_any(normalized, SAFETY_TERMS) or is_wet_device_still_powered(normalized):
+        return TriageDecision(
+            action="risco_seguranca",
+            reason="A pergunta relata risco de seguranca eletrica, incendio, bateria ou dano imediato.",
+            requires_human=True,
+            is_emergency=True,
+        )
+
+    if is_scope_feedback_question(normalized):
+        return TriageDecision(
+            action="fora_escopo",
+            reason="A pergunta nao parece estar dentro do escopo de assistencia tecnica.",
+        )
+
+    if has_any(normalized, HUMAN_TERMS) or has_specific_warranty_question(normalized):
+        return TriageDecision(
+            action="encaminhar_humano",
+            reason="A pergunta envolve atendimento individual, valor, garantia especifica, OS, senha ou dados pessoais.",
+            requires_human=True,
+        )
 
     return TriageDecision(
         action="operacional_responder",
-        reason="A pergunta parece operacional e pode ser respondida com a base de conhecimento.",
+        reason="A pergunta pode ser respondida com a base de conhecimento.",
     )
 
 
 def normalize(text: str) -> str:
-    return " ".join(text.lower().strip().split())
+    replacements = str.maketrans(
+        {
+            "á": "a",
+            "à": "a",
+            "â": "a",
+            "ã": "a",
+            "é": "e",
+            "ê": "e",
+            "í": "i",
+            "ó": "o",
+            "ô": "o",
+            "õ": "o",
+            "ú": "u",
+            "ç": "c",
+        }
+    )
+    return " ".join(text.lower().translate(replacements).strip().split())
+
+
+def has_any(text: str, terms: tuple[str, ...]) -> bool:
+    return any(term in text for term in terms)
+
+
+def is_wet_device_still_powered(text: str) -> bool:
+    return ("molhou" in text or "caiu na agua" in text) and has_any(text, ("ligado", "carregando", "tomada"))
+
+
+def has_specific_warranty_question(text: str) -> bool:
+    if "garantia" not in text:
+        return False
+    return has_any(text, SPECIFIC_WARRANTY_TERMS)
+
+
+def is_scope_feedback_question(text: str) -> bool:
+    if not text:
+        return True
+    if has_any(text, CAPABILITY_TERMS):
+        return True
+    if has_any(text, OUT_OF_SCOPE_TERMS):
+        return not has_any(text, IN_SCOPE_TERMS)
+    return not has_any(text, IN_SCOPE_TERMS)
 
 
 def build_triage_answer(decision: TriageDecision) -> str | None:
-    if decision.action == "urgencia_emergencia":
+    if decision.action == "fora_escopo":
         return (
-            "Pelo que voce descreveu, isso pode envolver um sinal de alerta. "
-            "Nao e seguro tentar resolver por aqui.\n\n"
-            "Entre em contato imediatamente com a clinica, com o medico responsavel "
-            "ou procure um servico de urgencia/emergencia. Se houver falta de ar, "
-            "dor no peito, desmaio, sangramento intenso ou piora rapida, procure "
-            "atendimento de emergencia agora."
+            "Posso ajudar com duvidas de assistencia tecnica: celulares, notebooks, carregamento, tela, "
+            "bateria, aparelho molhado, garantia geral, orcamento, OS, coleta/entrega e itens para levar.\n\n"
+            "Me diga qual e o equipamento e o problema que eu tento orientar com base nos documentos."
+        )
+
+    if decision.action == "risco_seguranca":
+        return (
+            "Pelo que voce descreveu, pode haver risco de choque, curto, incendio ou dano maior ao aparelho. "
+            "Nao e seguro tentar resolver sozinho.\n\n"
+            "Desligue o equipamento, desconecte da tomada/carregador e nao tente abrir, carregar ou aquecer. "
+            "Fale com a assistencia tecnica para receber orientacao antes de continuar."
         )
 
     if decision.action == "encaminhar_humano":
         return (
-            "Essa duvida precisa ser confirmada pela equipe da clinica ou pelo medico responsavel. "
-            "Nao e seguro orientar individualmente por aqui.\n\n"
-            "Nao suspenda, inicie, troque dose ou ajuste medicamentos por conta propria. "
+            "Essa duvida precisa ser confirmada por um atendente da assistencia tecnica. "
+            "Nao consigo validar valores, garantias especificas, status de ordem de servico, senhas ou dados pessoais por aqui.\n\n"
             "Vou tratar isso como caso para atendimento humano."
         )
 

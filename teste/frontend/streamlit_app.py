@@ -5,10 +5,10 @@ import streamlit as st
 
 API_URL = os.getenv("API_URL", "http://localhost:8000")
 
-st.set_page_config(page_title="RAG Procedimentos Clinicos", layout="wide")
+st.set_page_config(page_title="RAG Assistencia Tecnica", layout="wide")
 
-st.title("Assistente RAG de Orientacao Pre-Procedimento")
-st.caption("Envie protocolos da clinica, instrucoes de preparo, termos e FAQs para responder duvidas operacionais de pacientes com seguranca.")
+st.title("Assistente RAG para Assistencia Tecnica")
+st.caption("Envie politicas, termos, tabelas e FAQs para responder duvidas operacionais de clientes com seguranca.")
 
 
 def api_get(path: str) -> requests.Response:
@@ -69,7 +69,7 @@ with st.sidebar:
 
 question = st.text_area(
     "Pergunta",
-    placeholder="Ex.: Tenho endoscopia amanha. Preciso ir acompanhado e fazer jejum?",
+    placeholder="Ex.: Meu celular molhou. Posso colocar para carregar?",
     height=100,
 )
 
@@ -99,7 +99,7 @@ if ask:
                     if triage:
                         action = triage["action"]
                         if triage.get("is_emergency"):
-                            st.error("Encaminhamento imediato recomendado.")
+                            st.error("Risco de seguranca.")
                         elif triage.get("requires_human"):
                             st.warning("Atendimento humano recomendado.")
                         else:

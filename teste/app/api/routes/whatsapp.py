@@ -73,12 +73,10 @@ async def receive_whatsapp_webhook(
 
 
 def format_whatsapp_answer(answer: str, triage_action: str | None = None) -> str:
-    if triage_action == "urgencia_emergencia":
-        return f"Atencao: encaminhamento imediato recomendado.\n\n{answer}"
+    if triage_action == "risco_seguranca":
+        return f"Atencao: risco de seguranca.\n\n{answer}"
     if triage_action == "encaminhar_humano":
         return f"Atendimento humano recomendado.\n\n{answer}"
-    if triage_action == "operacional_com_confirmacao":
-        return f"Confirmacao com a clinica recomendada.\n\n{answer}"
     return answer
 
 

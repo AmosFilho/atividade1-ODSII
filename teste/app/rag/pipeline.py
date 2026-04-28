@@ -56,12 +56,6 @@ class RAGPipeline:
                 triage=triage,
             )
         answer = self.llm.generate(request.question, sources)
-        if triage.action == "operacional_com_confirmacao":
-            answer = (
-                f"{answer}\n\n"
-                "Como sua situacao envolve preparo incompleto, divergencia ou uma condicao operacional "
-                "que pode afetar o procedimento, confirme com a equipe da clinica antes de seguir."
-            )
         return ChatResponse(answer=answer, sources=sources, triage=triage)
 
     def list_documents(self) -> DocumentListResponse:

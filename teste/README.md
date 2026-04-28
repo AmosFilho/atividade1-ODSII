@@ -1,20 +1,20 @@
-# Assistente RAG de Orientacao Pre-Procedimento
+# Assistente RAG para Assistencia Tecnica
 
-Aplicacao RAG para atendimento em clinicas medicas. O sistema responde duvidas operacionais de pacientes sobre preparo, documentos, horario de chegada, acompanhante, cuidados apos procedimento e sinais de alerta, usando apenas documentos indexados pela clinica.
+Aplicacao RAG para atendimento em assistencias tecnicas especializadas. O sistema responde duvidas operacionais de clientes sobre coleta, entrega, documentos, garantia, orcamento, cuidados antes de levar o equipamento e triagem inicial, usando apenas documentos indexados pela assistencia.
 
-> Este projeto nao substitui a equipe de saude. O bot nao diagnostica, nao prescreve, nao interpreta laudos, nao suspende medicamentos e nao decide se um paciente esta apto para realizar um procedimento.
+> Este projeto nao substitui avaliacao tecnica. O bot nao confirma preco final, nao promete prazo exato, nao informa status real de OS sem sistema interno, nao solicita senha completa e nao orienta reparos perigosos.
 
 ## Objetivo
 
-O projeto demonstra uma IA vertical para atendimento pre e pos-procedimento. Ele foi pensado para cenarios como:
+O projeto demonstra uma IA vertical para atendimento de assistencia tecnica. Ele foi pensado para cenarios como:
 
-- orientar pacientes sobre preparo para endoscopia, colonoscopia, ultrassom e exames de imagem;
-- responder perguntas sobre jejum, sedacao, acompanhante, documentos e horario de chegada;
-- encaminhar duvidas sensiveis para atendimento humano;
-- orientar busca de urgencia/emergencia quando houver sinais de alerta;
+- orientar clientes sobre cuidados com celular, notebook e pequenos eletronicos;
+- responder perguntas sobre coleta, entrega, documentos, carregador, backup e garantia;
+- encaminhar duvidas de preco, status de OS, senha e dados para atendimento humano;
+- orientar desligar e desconectar quando houver bateria estufada, fumaca, choque ou cheiro de queimado;
 - mostrar as fontes usadas na resposta para facilitar auditoria.
 
-A base em `data/samples` e demonstrativa. Em uso real, os documentos devem ser substituidos ou revisados pela direcao tecnica da clinica.
+A base em `data/samples` e demonstrativa. Em uso real, os documentos devem ser substituidos ou revisados pela gestao tecnica da assistencia.
 
 ## Ferramentas
 
@@ -142,7 +142,7 @@ Na interface, clique em **Indexar exemplos** antes de perguntar.
 Pergunta de teste:
 
 ```txt
-Tenho endoscopia com sedacao amanha. Preciso levar acompanhante?
+Meu celular molhou. Posso colocar para carregar?
 ```
 
 ## Rodando com Docker Compose
@@ -270,7 +270,7 @@ ASSISTANT_COMMAND_TRIGGER=!bot
 Nesse modo, apenas mensagens suas que comecem com o comando do assistente serao processadas. Exemplo:
 
 ```txt
-!bot Tenho endoscopia amanha. Preciso levar acompanhante?
+!bot Meu celular molhou. Posso colocar para carregar?
 ```
 
 Se quiser usar a Cloud API oficial da Meta, altere:
@@ -295,9 +295,9 @@ Antes de consultar o RAG, a pergunta passa por uma triagem deterministica em `ap
 Classes de triagem:
 
 - `operacional_responder`: pergunta operacional coberta pela base.
-- `operacional_com_confirmacao`: o bot pode trazer informacao da base, mas recomenda confirmar com a clinica.
-- `encaminhar_humano`: envolve medicamento, condicao especial ou decisao individual; o bot nao tenta resolver.
-- `urgencia_emergencia`: relata sinal de alerta; orienta contato imediato com clinica, medico ou emergencia.
+- `encaminhar_humano`: envolve preco, garantia especifica, status de OS, senha, dados ou decisao individual.
+- `risco_seguranca`: relata risco eletrico, bateria, curto, fumaca, choque ou cheiro de queimado.
+- `fora_escopo`: pergunta fora de assistencia tecnica; o bot responde rapidamente o que consegue fazer.
 
 A resposta da API inclui o campo `triage`:
 
@@ -307,7 +307,7 @@ A resposta da API inclui o campo `triage`:
   "sources": [],
   "triage": {
     "action": "encaminhar_humano",
-    "reason": "A pergunta envolve medicamento ou alteracao de tratamento.",
+    "reason": "A pergunta envolve valor, garantia, aprovacao comercial ou dados da ordem de servico.",
     "requires_human": true,
     "is_emergency": false
   }
@@ -339,30 +339,28 @@ Critérios sugeridos para avaliacao manual:
 - fidelidade ao contexto recuperado;
 - ausencia de informacao inventada;
 - citacao correta das fontes;
-- encaminhamento adequado em sinais de alerta;
-- recusa adequada de diagnostico, prescricao ou alteracao de medicamentos;
+- encaminhamento adequado em riscos de seguranca;
+- recusa adequada de preco final, status de OS, senha, dados e reparos perigosos;
 - classificacao correta da triagem e encaminhamento humano.
 
 ## Base de Conhecimento
 
 Os documentos demonstrativos ficam em `data/samples`:
 
-- `base_atendimento_seguro_clinica.md`
-- `jejum_sedacao_e_acompanhante.md`
-- `medicamentos_e_condicoes_especiais.md`
-- `protocolo_endoscopia_digestiva.md`
-- `protocolo_colonoscopia.md`
-- `orientacoes_ultrassom_abdominal.md`
-- `exames_imagem_contraste_e_mri.md`
-- `sinais_alerta_pos_procedimento.md`
+- `base_atendimento_assistencia_tecnica.md`
+- `garantia_orcamento_e_os.md`
+- `triagem_smartphones.md`
+- `triagem_notebooks.md`
+- `dados_senhas_e_privacidade.md`
+- `coleta_entrega_e_cuidados.md`
 
-Cada arquivo inclui referencias usadas para calibracao. Em producao, substitua esses documentos pelos protocolos oficiais da clinica.
+Em producao, substitua esses documentos pelas politicas oficiais da assistencia.
 
 ## Limites Atuais
 
 - Nao ha OCR para PDFs escaneados.
 - Nao ha autenticacao, auditoria, controle de acesso ou gestao de consentimento.
 - A integracao com WhatsApp e inicial: recebe texto e responde; ainda nao ha fila humana, templates, persistencia de conversas ou controle de janela de 24 horas.
-- Nao ha integracao com prontuario ou agenda.
+- Nao ha integracao com sistema de ordem de servico, estoque ou financeiro.
 - Nao ha revisao tecnica formal da base demonstrativa.
-- O uso real em saude exige revisao clinica, adequacao LGPD, logs auditaveis e fluxo claro de atendimento humano.
+- O uso real exige politicas comerciais revisadas, adequacao LGPD, logs auditaveis e fluxo claro de atendimento humano.

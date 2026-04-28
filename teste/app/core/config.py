@@ -6,7 +6,7 @@ from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
 class Settings(BaseSettings):
-    app_name: str = "Assistente RAG de Orientacao Pre-Procedimento"
+    app_name: str = "Assistente RAG para Assistencia Tecnica"
     api_host: str = "0.0.0.0"
     api_port: int = 8000
 

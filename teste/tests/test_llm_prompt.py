@@ -6,15 +6,15 @@ def test_prompt_instructs_model_to_avoid_hallucination() -> None:
     source = SourceChunk(
         id="1",
         source_id="abc",
-        filename="protocolo_endoscopia.md",
+        filename="triagem_smartphones.md",
         page=2,
         chunk_index=0,
-        text="Para endoscopia com sedacao, o paciente deve comparecer com acompanhante adulto.",
+        text="Se o aparelho molhou, desligue, nao carregue e procure avaliacao tecnica.",
         score=0.9,
     )
 
-    prompt = build_prompt("Preciso levar acompanhante?", [source])
+    prompt = build_prompt("Meu celular molhou. Posso colocar para carregar?", [source])
 
     assert "Nao invente" in prompt
-    assert "protocolo_endoscopia.md" in prompt
-    assert "Preciso levar acompanhante?" in prompt
+    assert "triagem_smartphones.md" in prompt
+    assert "Meu celular molhou. Posso colocar para carregar?" in prompt

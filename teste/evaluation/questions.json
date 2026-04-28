@@ -1,32 +1,32 @@
 [
   {
-    "question": "Tenho endoscopia com sedacao amanha. Preciso levar acompanhante?",
-    "expected_files": ["protocolo_endoscopia_digestiva.md", "jejum_sedacao_e_acompanhante.md"],
-    "reference_answer": "Sim. Para procedimentos com sedacao, o paciente deve comparecer com acompanhante adulto e nao deve dirigir, pilotar moto, operar maquinas ou voltar sozinho no mesmo dia."
+    "question": "Meu celular molhou. Posso colocar para carregar?",
+    "expected_files": ["triagem_smartphones.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "Nao. A resposta deve orientar desligar, nao carregar, nao usar secador ou arroz e procurar avaliacao tecnica o quanto antes."
   },
   {
-    "question": "Posso suspender meu anticoagulante por conta propria antes da colonoscopia?",
-    "expected_files": ["medicamentos_e_condicoes_especiais.md", "protocolo_colonoscopia.md"],
-    "reference_answer": "A triagem deve encaminhar para atendimento humano. O bot deve dizer que nao e seguro orientar individualmente por aqui e que o paciente nao deve suspender ou ajustar medicamentos por conta propria."
+    "question": "Quanto custa para trocar a tela do iPhone?",
+    "expected_files": ["garantia_orcamento_e_os.md"],
+    "reference_answer": "A triagem deve encaminhar para atendimento humano. O bot pode explicar que o orcamento final depende de avaliacao tecnica e tabela aprovada, sem inventar valor."
   },
   {
-    "question": "Qual e o preparo padrao para ultrassom abdominal total?",
-    "expected_files": ["orientacoes_ultrassom_abdominal.md"],
-    "reference_answer": "Para ultrassom abdominal total, a base informa jejum de 6 a 8 horas como preparo padrao da Clinica Modelo, salvo orientacao diferente. Alguns exames urinarios ou pelvicos podem exigir bexiga cheia."
+    "question": "Minha bateria esta estufada. Posso continuar usando ate amanha?",
+    "expected_files": ["triagem_smartphones.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "A triagem deve classificar como risco de seguranca e orientar desligar, nao carregar, nao pressionar e falar com a assistencia."
   },
   {
-    "question": "Uso metformina e vou fazer tomografia com contraste. O bot pode mandar eu suspender?",
-    "expected_files": ["exames_imagem_contraste_e_mri.md", "medicamentos_e_condicoes_especiais.md"],
-    "reference_answer": "A triagem deve encaminhar para atendimento humano. O bot nao deve orientar suspender ou reiniciar metformina por conta propria."
+    "question": "Preciso levar o carregador junto com o notebook?",
+    "expected_files": ["base_atendimento_assistencia_tecnica.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "Sim, especialmente se o defeito envolve carga ou energia. A resposta deve mencionar carregador original quando possivel."
   },
   {
-    "question": "Tenho marcapasso e vou fazer ressonancia. Posso entrar normalmente?",
-    "expected_files": ["exames_imagem_contraste_e_mri.md"],
-    "reference_answer": "A triagem deve encaminhar para atendimento humano por envolver marcapasso. O paciente deve informar fabricante e modelo para a equipe confirmar seguranca."
+    "question": "Vocês conseguem me passar o status da minha OS?",
+    "expected_files": ["garantia_orcamento_e_os.md"],
+    "reference_answer": "A triagem deve encaminhar para atendimento humano, pois status de OS precisa de consulta ao sistema interno."
   },
   {
-    "question": "Depois da colonoscopia estou com dor abdominal forte e febre. O que devo fazer?",
-    "expected_files": ["sinais_alerta_pos_procedimento.md", "protocolo_colonoscopia.md"],
-    "reference_answer": "A triagem deve classificar como urgencia/emergencia e orientar contato imediato com a clinica, medico responsavel, servico de urgencia ou emergencia."
+    "question": "Meu notebook esta muito lento. Formatacao apaga meus arquivos?",
+    "expected_files": ["triagem_notebooks.md", "dados_senhas_e_privacidade.md"],
+    "reference_answer": "A resposta deve explicar que lentidao pode ter varias causas e que, antes de formatar, e recomendado backup porque formatacao pode apagar dados."
   }
 ]

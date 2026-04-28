@@ -9,7 +9,7 @@ configure_logging()
 
 app = FastAPI(
     title=settings.app_name,
-    description="API REST para um assistente RAG de orientacao pre e pos-procedimento em clinicas.",
+    description="API REST para um assistente RAG de atendimento em assistencias tecnicas especializadas.",
     version="0.1.0",
 )
 

@@ -27,7 +27,7 @@ def test_parse_inbound_text_message() -> None:
                                     "id": "wamid.123",
                                     "from": "5592999999999",
                                     "type": "text",
-                                    "text": {"body": "Preciso levar acompanhante?"},
+                                    "text": {"body": "Preciso levar o carregador?"},
                                 }
                             ]
                         }
@@ -42,7 +42,7 @@ def test_parse_inbound_text_message() -> None:
     assert len(messages) == 1
     assert messages[0].message_id == "wamid.123"
     assert messages[0].from_number == "5592999999999"
-    assert messages[0].text == "Preciso levar acompanhante?"
+    assert messages[0].text == "Preciso levar o carregador?"
 
 
 def test_parse_ignores_non_text_message() -> None:
@@ -76,7 +76,7 @@ def test_parse_chatpro_received_message() -> None:
             "id": "ID131231231",
             "from_me": False,
             "ignore": False,
-            "message": "Preciso fazer jejum?",
+            "message": "Meu celular nao carrega.",
             "number": "5592999999999@s.whatsapp.net",
         },
     }
@@ -86,7 +86,7 @@ def test_parse_chatpro_received_message() -> None:
     assert len(messages) == 1
     assert messages[0].message_id == "ID131231231"
     assert messages[0].from_number == "5592999999999"
-    assert messages[0].text == "Preciso fazer jejum?"
+    assert messages[0].text == "Meu celular nao carrega."
 
 
 def test_parse_chatpro_received_message_list_payload() -> None:
@@ -278,6 +278,6 @@ def test_signature_verification_when_secret_is_configured(monkeypatch) -> None:
 
 
 def test_format_whatsapp_answer_prefixes_handoff() -> None:
-    text = format_whatsapp_answer("Nao suspenda medicamento.", "encaminhar_humano")
+    text = format_whatsapp_answer("Um atendente precisa confirmar o orcamento.", "encaminhar_humano")
 
     assert text.startswith("Atendimento humano recomendado.")
