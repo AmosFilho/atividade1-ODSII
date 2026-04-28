@@ -225,7 +225,7 @@ CHATPRO_INSTANCE_ID=chatpro-fx5qbe2hah
 CHATPRO_TOKEN=token_da_instancia
 CHATPRO_BASE_URL=https://v5.chatpro.com.br
 CHATPRO_RESPOND_FROM_ME=false
-CHATPRO_FROM_ME_TRIGGER=!bot
+ASSISTANT_COMMAND_TRIGGER=!bot
 ```
 
 Webhook para configurar na instancia ChatPro:
@@ -264,10 +264,10 @@ Por padrao, mensagens enviadas pelo proprio numero conectado sao ignoradas para 
 
 ```env
 CHATPRO_RESPOND_FROM_ME=true
-CHATPRO_FROM_ME_TRIGGER=!bot
+ASSISTANT_COMMAND_TRIGGER=!bot
 ```
 
-Nesse modo, apenas mensagens suas que comecem com `!bot` serao processadas. Exemplo:
+Nesse modo, apenas mensagens suas que comecem com o comando do assistente serao processadas. Exemplo:
 
 ```txt
 !bot Tenho endoscopia amanha. Preciso levar acompanhante?

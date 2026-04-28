@@ -41,7 +41,7 @@ class Settings(BaseSettings):
     chatpro_token: str | None = None
     chatpro_respond_from_me: bool = False
     chatpro_bot_prefix: str = "Assistente:"
-    chatpro_from_me_trigger: str = "!bot"
+    assistant_command_trigger: str = "!bot"
 
     model_config = SettingsConfigDict(env_file=".env", env_file_encoding="utf-8", extra="ignore")
 

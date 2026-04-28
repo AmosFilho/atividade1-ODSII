@@ -13,6 +13,10 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 MAX_WHATSAPP_TEXT_LENGTH = 4096
+REQUEST_TIMEOUT_SECONDS = 30
+FALLBACK_WHATSAPP_TEXT = "Nao consegui gerar uma resposta."
+CHATPRO_RECEIVED_EVENT = "received_message"
+CHATPRO_LEGACY_EVENTS = {"send_message", "receive_message", "received_message", "receveid_message"}
 
 
 @dataclass(frozen=True)
@@ -60,7 +64,7 @@ class WhatsAppClient:
                         "body": chunk,
                     },
                 },
-                timeout=30,
+                timeout=REQUEST_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
 
@@ -99,13 +103,13 @@ class ChatProClient:
                     "number": number,
                     "message": chunk,
                 },
-                timeout=30,
+                timeout=REQUEST_TIMEOUT_SECONDS,
             )
             response.raise_for_status()
 
 
 def split_whatsapp_text(text: str) -> list[str]:
-    clean_text = text.strip() or "Nao consegui gerar uma resposta."
+    clean_text = text.strip() or FALLBACK_WHATSAPP_TEXT
     if len(clean_text) <= MAX_WHATSAPP_TEXT_LENGTH:
         return [clean_text]
 
@@ -166,7 +170,7 @@ def parse_inbound_messages(payload: dict[str, Any] | list[Any]) -> list[WhatsApp
 
 
 def parse_chatpro_inbound_message(payload: dict[str, Any]) -> WhatsAppInboundMessage | None:
-    if payload.get("event") != "received_message":
+    if payload.get("event") != CHATPRO_RECEIVED_EVENT:
         return None
 
     message_data = payload.get("message_data")
@@ -177,9 +181,13 @@ def parse_chatpro_inbound_message(payload: dict[str, Any]) -> WhatsAppInboundMes
         logger.info("Mensagem ChatPro ignorada porque ignore=true.")
         return None
 
-    text = message_data.get("message")
+    text = clean_message_text(message_data.get("message"))
+    if text and is_chatpro_bot_message(text):
+        logger.info("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
+        return None
+
     from_me = message_data.get("from_me") is True
-    if from_me and not should_process_from_me_message(str(text or "")):
+    if from_me and should_ignore_connected_number_message(text or ""):
         return None
 
     from_number = message_data.get("number") or message_data.get("participant")
@@ -196,13 +204,13 @@ def parse_chatpro_inbound_message(payload: dict[str, Any]) -> WhatsAppInboundMes
     return WhatsAppInboundMessage(
         message_id=str(message_id),
         from_number=normalize_chatpro_number(str(from_number)),
-        text=strip_from_me_trigger(str(text)) if from_me else str(text),
+        text=strip_assistant_command(text) if from_me else text,
     )
 
 
 def parse_chatpro_legacy_message(payload: dict[str, Any]) -> WhatsAppInboundMessage | None:
     event_type = payload.get("Type")
-    if event_type not in {"send_message", "receive_message", "received_message", "receveid_message"}:
+    if event_type not in CHATPRO_LEGACY_EVENTS:
         return None
 
     body = payload.get("Body")
@@ -213,19 +221,14 @@ def parse_chatpro_legacy_message(payload: dict[str, Any]) -> WhatsAppInboundMess
     if not isinstance(info, dict):
         return None
 
-    text = body.get("Text")
-
-    # Só processa mensagens que começam com '!bot' (case-insensitive)
-    if not str(text or "").strip().lower().startswith("!bot"):
-        logger.info("Mensagem ChatPro ignorada porque não começa com !bot: %r", text)
-        return None
+    text = clean_message_text(body.get("Text"))
 
     if is_chatpro_bot_message(str(text or "")):
         logger.info("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
         return None
 
     from_me = info.get("FromMe") is True
-    if from_me and not should_process_from_me_message(str(text or "")):
+    if from_me and should_ignore_connected_number_message(text or ""):
         return None
 
     message_id = info.get("Id")
@@ -245,15 +248,19 @@ def parse_chatpro_legacy_message(payload: dict[str, Any]) -> WhatsAppInboundMess
         )
         return None
 
-    # Remove o prefixo '!bot' antes de passar para processamento
-    clean_text = str(text)
-    if clean_text.strip().lower().startswith("!bot"):
-        clean_text = clean_text.strip()[4:].strip()
+    clean_text = strip_assistant_command(text) if from_me else text
     return WhatsAppInboundMessage(
         message_id=str(message_id),
         from_number=normalize_chatpro_number(str(from_number)),
-        text=strip_from_me_trigger(clean_text) if from_me else clean_text,
+        text=clean_text,
     )
+
+
+def clean_message_text(value: object) -> str | None:
+    if value is None:
+        return None
+    text = str(value).strip()
+    return text or None
 
 
 def normalize_chatpro_number(value: str) -> str:
@@ -275,27 +282,28 @@ def is_chatpro_bot_message(text: str) -> bool:
     return bool(prefix) and text.strip().startswith(prefix)
 
 
-def should_process_from_me_message(text: str) -> bool:
+def should_ignore_connected_number_message(text: str) -> bool:
     if not settings.chatpro_respond_from_me:
-        logger.info("Mensagem ChatPro ignorada porque FromMe=true.")
-        return False
+        logger.info("Mensagem ChatPro ignorada porque veio do proprio numero conectado.")
+        return True
 
-    if not has_from_me_trigger(text):
-        logger.info("Mensagem ChatPro ignorada porque FromMe=true sem gatilho de teste.")
-        return False
+    if not has_assistant_command(text):
+        logger.info("Mensagem ChatPro ignorada porque veio do proprio numero conectado sem comando do assistente.")
+        return True
 
-    return True
-
-
-def has_from_me_trigger(text: str) -> bool:
-    trigger = settings.chatpro_from_me_trigger.strip()
-    return not trigger or text.strip().startswith(trigger)
+    return False
 
 
-def strip_from_me_trigger(text: str) -> str:
-    trigger = settings.chatpro_from_me_trigger.strip()
+def has_assistant_command(text: str) -> bool:
+    trigger = settings.assistant_command_trigger.strip()
     clean_text = text.strip()
-    if trigger and clean_text.startswith(trigger):
+    return not trigger or clean_text.casefold().startswith(trigger.casefold())
+
+
+def strip_assistant_command(text: str) -> str:
+    trigger = settings.assistant_command_trigger.strip()
+    clean_text = text.strip()
+    if trigger and clean_text.casefold().startswith(trigger.casefold()):
         return clean_text[len(trigger) :].strip()
     return clean_text
 

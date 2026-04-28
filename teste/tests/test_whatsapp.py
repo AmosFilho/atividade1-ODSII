@@ -8,9 +8,9 @@ from app.integrations.whatsapp import (
     is_chatpro_bot_message,
     normalize_chatpro_number,
     parse_inbound_messages,
-    should_process_from_me_message,
+    should_ignore_connected_number_message,
     split_whatsapp_text,
-    strip_from_me_trigger,
+    strip_assistant_command,
     verify_webhook_signature,
 )
 
@@ -133,7 +133,7 @@ def test_parse_chatpro_ignores_from_me_by_default(monkeypatch) -> None:
 
 def test_parse_chatpro_allows_from_me_when_enabled(monkeypatch) -> None:
     monkeypatch.setattr(settings, "chatpro_respond_from_me", True)
-    monkeypatch.setattr(settings, "chatpro_from_me_trigger", "!bot")
+    monkeypatch.setattr(settings, "assistant_command_trigger", "!bot")
     payload = {
         "event": "received_message",
         "message_data": {
@@ -153,7 +153,7 @@ def test_parse_chatpro_allows_from_me_when_enabled(monkeypatch) -> None:
 
 def test_parse_chatpro_legacy_from_me_when_enabled(monkeypatch) -> None:
     monkeypatch.setattr(settings, "chatpro_respond_from_me", True)
-    monkeypatch.setattr(settings, "chatpro_from_me_trigger", "!bot")
+    monkeypatch.setattr(settings, "assistant_command_trigger", "!bot")
     payload = {
         "Type": "send_message",
         "Body": {
@@ -172,6 +172,28 @@ def test_parse_chatpro_legacy_from_me_when_enabled(monkeypatch) -> None:
     assert len(messages) == 1
     assert messages[0].from_number == "5592888888888"
     assert messages[0].text == "Mensagem no formato legacy"
+
+
+def test_parse_chatpro_legacy_from_me_uses_configured_command(monkeypatch) -> None:
+    monkeypatch.setattr(settings, "chatpro_respond_from_me", True)
+    monkeypatch.setattr(settings, "assistant_command_trigger", "!bo")
+    payload = {
+        "Type": "send_message",
+        "Body": {
+            "Text": "!bo Mensagem com gatilho configurado",
+            "Info": {
+                "Id": "3EB0447D78381969537E09",
+                "FromMe": True,
+                "RemoteJid": "5592888888888@s.whatsapp.net",
+                "SenderJid": "5592999999999@s.whatsapp.net",
+            },
+        },
+    }
+
+    messages = parse_inbound_messages(payload)
+
+    assert len(messages) == 1
+    assert messages[0].text == "Mensagem com gatilho configurado"
 
 
 def test_parse_chatpro_legacy_from_other_person() -> None:
@@ -223,13 +245,15 @@ def test_chatpro_bot_prefix_helpers(monkeypatch) -> None:
     assert is_chatpro_bot_message(text) is True
 
 
-def test_from_me_trigger_helpers(monkeypatch) -> None:
+def test_assistant_command_helpers(monkeypatch) -> None:
     monkeypatch.setattr(settings, "chatpro_respond_from_me", True)
-    monkeypatch.setattr(settings, "chatpro_from_me_trigger", "!bot")
+    monkeypatch.setattr(settings, "assistant_command_trigger", "!bot")
 
-    assert should_process_from_me_message("Mensagem normal") is False
-    assert should_process_from_me_message("!bot Mensagem normal") is True
-    assert strip_from_me_trigger("!bot Mensagem normal") == "Mensagem normal"
+    assert should_ignore_connected_number_message("Mensagem normal") is True
+    assert should_ignore_connected_number_message("!bot Mensagem normal") is False
+    assert should_ignore_connected_number_message("!BoT Mensagem normal") is False
+    assert strip_assistant_command("!bot Mensagem normal") == "Mensagem normal"
+    assert strip_assistant_command("!BoT Mensagem normal") == "Mensagem normal"
 
 
 def test_normalize_chatpro_number() -> None:

@@ -51,7 +51,7 @@ services:
       CHATPRO_TOKEN: ${CHATPRO_TOKEN:-}
       CHATPRO_RESPOND_FROM_ME: ${CHATPRO_RESPOND_FROM_ME:-false}
       CHATPRO_BOT_PREFIX: ${CHATPRO_BOT_PREFIX:-Assistente:}
-      CHATPRO_FROM_ME_TRIGGER: ${CHATPRO_FROM_ME_TRIGGER:-!bot}
+      ASSISTANT_COMMAND_TRIGGER: ${ASSISTANT_COMMAND_TRIGGER:-!bot}
     volumes:
       - .:/app
       - ./data:/app/data
