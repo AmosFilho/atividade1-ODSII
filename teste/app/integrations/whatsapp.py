@@ -134,7 +134,7 @@ def parse_inbound_messages(payload: dict[str, Any] | list[Any]) -> list[WhatsApp
             if isinstance(item, dict):
                 messages.extend(parse_inbound_messages(item))
         if not messages:
-            logger.info("parse_inbound_messages: Nenhuma mensagem encontrada no payload list: %r", payload)
+            logger.debug("Nenhuma mensagem encontrada no payload list.")
         return messages
 
     chatpro_message = parse_chatpro_inbound_message(payload)
@@ -157,15 +157,18 @@ def parse_inbound_messages(payload: dict[str, Any] | list[Any]) -> list[WhatsApp
                 message_id = message.get("id")
                 if not text or not from_number or not message_id:
                     continue
+                clean_text = clean_assistant_command_text(str(text))
+                if clean_text is None:
+                    continue
                 messages.append(
                     WhatsAppInboundMessage(
                         message_id=str(message_id),
                         from_number=str(from_number),
-                        text=str(text),
+                        text=clean_text,
                     )
                 )
     if not messages:
-        logger.info("parse_inbound_messages: Nenhuma mensagem encontrada no payload dict: %r", payload)
+        logger.debug("Nenhuma mensagem encontrada no payload dict.")
     return messages
 
 
@@ -178,24 +181,28 @@ def parse_chatpro_inbound_message(payload: dict[str, Any]) -> WhatsAppInboundMes
         return None
 
     if message_data.get("ignore") is True:
-        logger.info("Mensagem ChatPro ignorada porque ignore=true.")
+        logger.debug("Mensagem ChatPro ignorada porque ignore=true.")
         return None
 
     text = clean_message_text(message_data.get("message"))
     if text and is_chatpro_bot_message(text):
-        logger.info("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
+        logger.debug("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
         return None
 
     from_me = message_data.get("from_me") is True
     if from_me and should_ignore_connected_number_message(text or ""):
         return None
+    clean_text = clean_assistant_command_text(text or "")
+    if clean_text is None:
+        logger.debug("Mensagem ChatPro ignorada porque nao usa o comando do assistente.")
+        return None
 
     from_number = message_data.get("number") or message_data.get("participant")
     message_id = message_data.get("id")
-    if not text or not from_number or not message_id:
-        logger.info(
+    if not from_number or not message_id:
+        logger.debug(
             "Mensagem ChatPro ignorada por campos ausentes: has_text=%s has_number=%s has_id=%s",
-            bool(text),
+            bool(clean_text),
             bool(from_number),
             bool(message_id),
         )
@@ -204,7 +211,7 @@ def parse_chatpro_inbound_message(payload: dict[str, Any]) -> WhatsAppInboundMes
     return WhatsAppInboundMessage(
         message_id=str(message_id),
         from_number=normalize_chatpro_number(str(from_number)),
-        text=strip_assistant_command(text) if from_me else text,
+        text=clean_text,
     )
 
 
@@ -224,11 +231,15 @@ def parse_chatpro_legacy_message(payload: dict[str, Any]) -> WhatsAppInboundMess
     text = clean_message_text(body.get("Text"))
 
     if is_chatpro_bot_message(str(text or "")):
-        logger.info("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
+        logger.debug("Mensagem ChatPro ignorada porque parece ter sido enviada pelo bot.")
         return None
 
     from_me = info.get("FromMe") is True
     if from_me and should_ignore_connected_number_message(text or ""):
+        return None
+    clean_text = clean_assistant_command_text(text or "")
+    if clean_text is None:
+        logger.debug("Mensagem ChatPro legacy ignorada porque nao usa o comando do assistente.")
         return None
 
     message_id = info.get("Id")
@@ -236,19 +247,15 @@ def parse_chatpro_legacy_message(payload: dict[str, Any]) -> WhatsAppInboundMess
     sender_jid = info.get("SenderJid")
     from_number = remote_jid or sender_jid
 
-    if not text or not from_number or not message_id:
-        logger.info(
-            "Mensagem ChatPro legacy ignorada por campos ausentes: has_text=%s has_number=%s has_id=%s | text=%r from_number=%r message_id=%r",
-            bool(text),
+    if not from_number or not message_id:
+        logger.debug(
+            "Mensagem ChatPro legacy ignorada por campos ausentes: has_text=%s has_number=%s has_id=%s",
+            bool(clean_text),
             bool(from_number),
             bool(message_id),
-            text,
-            from_number,
-            message_id,
         )
         return None
 
-    clean_text = strip_assistant_command(text) if from_me else text
     return WhatsAppInboundMessage(
         message_id=str(message_id),
         from_number=normalize_chatpro_number(str(from_number)),
@@ -284,14 +291,21 @@ def is_chatpro_bot_message(text: str) -> bool:
 
 def should_ignore_connected_number_message(text: str) -> bool:
     if not settings.chatpro_respond_from_me:
-        logger.info("Mensagem ChatPro ignorada porque veio do proprio numero conectado.")
+        logger.debug("Mensagem ChatPro ignorada porque veio do proprio numero conectado.")
         return True
 
     if not has_assistant_command(text):
-        logger.info("Mensagem ChatPro ignorada porque veio do proprio numero conectado sem comando do assistente.")
+        logger.debug("Mensagem ChatPro ignorada porque veio do proprio numero conectado sem comando do assistente.")
         return True
 
     return False
+
+
+def clean_assistant_command_text(text: str) -> str | None:
+    if not has_assistant_command(text):
+        return None
+    clean_text = strip_assistant_command(text)
+    return clean_text or None
 
 
 def has_assistant_command(text: str) -> bool:

@@ -5,6 +5,7 @@ from app.api.routes.whatsapp import format_whatsapp_answer
 from app.core.config import settings
 from app.integrations.whatsapp import (
     add_chatpro_bot_prefix,
+    clean_assistant_command_text,
     is_chatpro_bot_message,
     normalize_chatpro_number,
     parse_inbound_messages,
@@ -27,7 +28,7 @@ def test_parse_inbound_text_message() -> None:
                                     "id": "wamid.123",
                                     "from": "5592999999999",
                                     "type": "text",
-                                    "text": {"body": "Preciso levar o carregador?"},
+                                    "text": {"body": "!bot Preciso levar o carregador?"},
                                 }
                             ]
                         }
@@ -43,6 +44,31 @@ def test_parse_inbound_text_message() -> None:
     assert messages[0].message_id == "wamid.123"
     assert messages[0].from_number == "5592999999999"
     assert messages[0].text == "Preciso levar o carregador?"
+
+
+def test_parse_ignores_text_message_without_command() -> None:
+    payload = {
+        "entry": [
+            {
+                "changes": [
+                    {
+                        "value": {
+                            "messages": [
+                                {
+                                    "id": "wamid.123",
+                                    "from": "5592999999999",
+                                    "type": "text",
+                                    "text": {"body": "Preciso levar o carregador?"},
+                                }
+                            ]
+                        }
+                    }
+                ]
+            }
+        ]
+    }
+
+    assert parse_inbound_messages(payload) == []
 
 
 def test_parse_ignores_non_text_message() -> None:
@@ -76,7 +102,7 @@ def test_parse_chatpro_received_message() -> None:
             "id": "ID131231231",
             "from_me": False,
             "ignore": False,
-            "message": "Meu celular nao carrega.",
+            "message": "!bot Meu celular nao carrega.",
             "number": "5592999999999@s.whatsapp.net",
         },
     }
@@ -87,6 +113,21 @@ def test_parse_chatpro_received_message() -> None:
     assert messages[0].message_id == "ID131231231"
     assert messages[0].from_number == "5592999999999"
     assert messages[0].text == "Meu celular nao carrega."
+
+
+def test_parse_chatpro_ignores_received_message_without_command() -> None:
+    payload = {
+        "event": "received_message",
+        "message_data": {
+            "id": "ID131231231",
+            "from_me": False,
+            "ignore": False,
+            "message": "Meu celular nao carrega.",
+            "number": "5592999999999@s.whatsapp.net",
+        },
+    }
+
+    assert parse_inbound_messages(payload) == []
 
 
 def test_parse_chatpro_received_message_list_payload() -> None:
@@ -101,7 +142,7 @@ def test_parse_chatpro_received_message_list_payload() -> None:
                 "id": "ID131231232",
                 "from_me": False,
                 "ignore": False,
-                "message": "Preciso levar documento?",
+                "message": "!bot Preciso levar documento?",
                 "number": "5592888888888@s.whatsapp.net",
             },
         },
@@ -123,7 +164,7 @@ def test_parse_chatpro_ignores_from_me_by_default(monkeypatch) -> None:
             "id": "ID131231233",
             "from_me": True,
             "ignore": False,
-            "message": "Mensagem enviada por mim",
+            "message": "!bot Mensagem enviada por mim",
             "number": "5592888888888@s.whatsapp.net",
         },
     }
@@ -200,7 +241,7 @@ def test_parse_chatpro_legacy_from_other_person() -> None:
     payload = {
         "Type": "send_message",
         "Body": {
-            "Text": "Mensagem recebida de outra pessoa",
+            "Text": "!bot Mensagem recebida de outra pessoa",
             "Info": {
                 "Id": "3EB0447D78381969537E08",
                 "FromMe": False,
@@ -215,6 +256,23 @@ def test_parse_chatpro_legacy_from_other_person() -> None:
     assert len(messages) == 1
     assert messages[0].from_number == "5592888888888"
     assert messages[0].text == "Mensagem recebida de outra pessoa"
+
+
+def test_parse_chatpro_legacy_ignores_other_person_without_command() -> None:
+    payload = {
+        "Type": "send_message",
+        "Body": {
+            "Text": "Mensagem recebida de outra pessoa",
+            "Info": {
+                "Id": "3EB0447D78381969537E08",
+                "FromMe": False,
+                "RemoteJid": "5592888888888@s.whatsapp.net",
+                "SenderJid": "5592999999999@s.whatsapp.net",
+            },
+        },
+    }
+
+    assert parse_inbound_messages(payload) == []
 
 
 def test_parse_chatpro_legacy_ignores_bot_message(monkeypatch) -> None:
@@ -252,6 +310,8 @@ def test_assistant_command_helpers(monkeypatch) -> None:
     assert should_ignore_connected_number_message("Mensagem normal") is True
     assert should_ignore_connected_number_message("!bot Mensagem normal") is False
     assert should_ignore_connected_number_message("!BoT Mensagem normal") is False
+    assert clean_assistant_command_text("Mensagem normal") is None
+    assert clean_assistant_command_text("!bot Mensagem normal") == "Mensagem normal"
     assert strip_assistant_command("!bot Mensagem normal") == "Mensagem normal"
     assert strip_assistant_command("!BoT Mensagem normal") == "Mensagem normal"
 
