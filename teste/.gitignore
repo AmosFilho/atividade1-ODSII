@@ -1,0 +1,38 @@
+# Environment and secrets
+.env
+.env.*
+!.env.example
+
+# Python
+.venv/
+venv/
+env/
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.ruff_cache/
+.mypy_cache/
+.coverage
+htmlcov/
+
+# Local tooling
+.codex
+.vscode/
+.idea/
+
+# OS/editor noise
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+
+# Runtime data
+data/raw/*
+!data/raw/.gitkeep
+data/vector_store/*
+!data/vector_store/.gitkeep
+
+# Logs
+*.log
+logs/

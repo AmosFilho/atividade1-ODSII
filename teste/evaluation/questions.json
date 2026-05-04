@@ -1,0 +1,32 @@
+[
+  {
+    "question": "Meu celular molhou. Posso colocar para carregar?",
+    "expected_files": ["triagem_smartphones.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "Nao. A resposta deve orientar desligar, nao carregar, nao usar secador ou arroz e procurar avaliacao tecnica o quanto antes."
+  },
+  {
+    "question": "Quanto custa para trocar a tela do iPhone?",
+    "expected_files": ["garantia_orcamento_e_os.md"],
+    "reference_answer": "A triagem deve encaminhar para atendimento humano. O bot pode explicar que o orcamento final depende de avaliacao tecnica e tabela aprovada, sem inventar valor."
+  },
+  {
+    "question": "Minha bateria esta estufada. Posso continuar usando ate amanha?",
+    "expected_files": ["triagem_smartphones.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "A triagem deve classificar como risco de seguranca e orientar desligar, nao carregar, nao pressionar e falar com a assistencia."
+  },
+  {
+    "question": "Preciso levar o carregador junto com o notebook?",
+    "expected_files": ["base_atendimento_assistencia_tecnica.md", "coleta_entrega_e_cuidados.md"],
+    "reference_answer": "Sim, especialmente se o defeito envolve carga ou energia. A resposta deve mencionar carregador original quando possivel."
+  },
+  {
+    "question": "Vocês conseguem me passar o status da minha OS?",
+    "expected_files": ["garantia_orcamento_e_os.md"],
+    "reference_answer": "A triagem deve encaminhar para atendimento humano, pois status de OS precisa de consulta ao sistema interno."
+  },
+  {
+    "question": "Meu notebook esta muito lento. Formatacao apaga meus arquivos?",
+    "expected_files": ["triagem_notebooks.md", "dados_senhas_e_privacidade.md"],
+    "reference_answer": "A resposta deve explicar que lentidao pode ter varias causas e que, antes de formatar, e recomendado backup porque formatacao pode apagar dados."
+  }
+]
